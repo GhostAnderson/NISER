@@ -20,4 +20,4 @@ There is a small dataset `sample` included in the folder `datasets/`, which can 
 ## Reimplementation Performance
 > Hit@20: 53.34
 
-> MRR@20: 18.39
+> MRR@20: 18.99
