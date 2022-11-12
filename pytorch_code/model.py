@@ -65,7 +65,7 @@ class SessionGraph(Module):
         self.gnn = GNN(self.hidden_size, step=opt.step)
         self.linear_one = nn.Linear(self.hidden_size, self.hidden_size, bias=True)
         self.linear_two = nn.Linear(self.hidden_size, self.hidden_size, bias=True)
-        self.pos_emb = Parameter(torch.Tensor(self.len_max, self.hidden_size))
+        self.pos_emb = Parameter(torch.Tensor(self.len_max+1, self.hidden_size))
         self.linear_three = nn.Linear(self.hidden_size, 1, bias=False)
         self.linear_transform = nn.Linear(self.hidden_size * 2, self.hidden_size, bias=True)
         self.loss_function = nn.CrossEntropyLoss()
