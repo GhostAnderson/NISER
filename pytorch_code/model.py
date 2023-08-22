@@ -223,7 +223,7 @@ def train_test(model, train_data, test_data):
     hit, mrr = [], []
     slices = test_data.generate_batch(model.batch_size)
     for i in slices:
-        targets, scores = forward(model, i, test_data)
+        targets, scores = forward(model, i, test_data, is_predict=True)
         sub_scores = scores.topk(20)[1]
         sub_scores = trans_to_cpu(sub_scores).detach().numpy()
         for score, target, mask in zip(sub_scores, targets, test_data.mask):
