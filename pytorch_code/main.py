@@ -9,7 +9,7 @@ Created on July, 2018
 import argparse
 import pickle
 import time
-from utils import build_graph, Data, split_validation
+from utils import Data, split_validation
 from model import *
 
 parser = argparse.ArgumentParser()

@@ -6,27 +6,7 @@ Created on July, 2018
 @author: Tangrizzly
 """
 
-import networkx as nx
 import numpy as np
-
-
-def build_graph(train_data):
-    graph = nx.DiGraph()
-    for seq in train_data:
-        for i in range(len(seq) - 1):
-            if graph.get_edge_data(seq[i], seq[i + 1]) is None:
-                weight = 1
-            else:
-                weight = graph.get_edge_data(seq[i], seq[i + 1])['weight'] + 1
-            graph.add_edge(seq[i], seq[i + 1], weight=weight)
-    for node in graph.nodes:
-        sum = 0
-        for j, i in graph.in_edges(node):
-            sum += graph.get_edge_data(j, i)['weight']
-        if sum != 0:
-            for j, i in graph.in_edges(i):
-                graph.add_edge(j, i, weight=graph.get_edge_data(j, i)['weight'] / sum)
-    return graph
 
 
 def data_masks(all_usr_pois, item_tail):
