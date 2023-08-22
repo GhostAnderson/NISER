@@ -135,7 +135,7 @@ class SessionGraph(Module):
         for weight in self.parameters():
             weight.data.uniform_(-stdv, stdv)
 
-    def compute_scores(self, hidden, mask, label):
+    def compute_scores(self, hidden, mask, label, is_predict=False):
         hidden = hidden + self.pos_emb[:mask.shape[1]]
         ht = hidden[torch.arange(mask.shape[0]).long(), torch.sum(mask, 1) - 1]  # batch_size x latent_size
         q1 = self.linear_one(ht).view(ht.shape[0], 1, ht.shape[1])  # batch_size x 1 x latent_size
@@ -146,23 +146,26 @@ class SessionGraph(Module):
             a = F.normalize(self.linear_transform(torch.cat([a, ht], 1)), dim=-1)
         b = F.normalize(self.embedding.weight[1:], dim=-1)  # n_nodes x latent_size
 
-        cosine = F.linear(a, b)
-        sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
-        phi = cosine * self.cos_m - sine * self.sin_m
-        if self.easy_margin:
-            phi = torch.where(cosine > 0, phi, cosine)
-        else:
-            phi = torch.where(cosine > self.th, phi, cosine - self.mm)
-        # --------------------------- convert label to one-hot ---------------------------
-        # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
-        one_hot = trans_to_cuda(torch.zeros(cosine.size()))
-        one_hot.scatter_(1, torch.Tensor(label).view(-1, 1).long(), 1)
-        # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
-        output = (one_hot * phi) + ((1.0 - one_hot) * cosine)  # you can use torch.where if your torch.__version__ is 0.4
-        output *= self.s
-        # print(output)
+        if not is_predict:
+            cosine = F.linear(a, b)
+            sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
+            phi = cosine * self.cos_m - sine * self.sin_m
+            if self.easy_margin:
+                phi = torch.where(cosine > 0, phi, cosine)
+            else:
+                phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+            # --------------------------- convert label to one-hot ---------------------------
+            # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
+            one_hot = trans_to_cuda(torch.zeros(cosine.size()))
+            one_hot.scatter_(1, torch.Tensor(label).view(-1, 1).long(), 1)
+            # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
+            output = (one_hot * phi) + ((1.0 - one_hot) * cosine)  # you can use torch.where if your torch.__version__ is 0.4
+            output *= self.s
+            # print(output)
 
-        return output
+            return output
+        else:
+            return F.linear(a, b)
 
     def forward(self, inputs, A):
         hidden = self.embedding(inputs)
@@ -185,7 +188,7 @@ def trans_to_cpu(variable):
         return variable
 
 
-def forward(model, i, data):
+def forward(model, i, data, is_predict=False):
     alias_inputs, A, items, mask, targets = data.get_slice(i)
     alias_inputs = trans_to_cuda(torch.Tensor(alias_inputs).long())
     items = trans_to_cuda(torch.Tensor(items).long())
@@ -194,7 +197,7 @@ def forward(model, i, data):
     hidden = model(items, A)
     get = lambda i: hidden[i][alias_inputs[i]]
     seq_hidden = torch.stack([get(i) for i in torch.arange(len(alias_inputs)).long()])
-    return targets, model.compute_scores(seq_hidden, mask, targets)
+    return targets, model.compute_scores(seq_hidden, mask, targets, is_predict)
 
 
 def train_test(model, train_data, test_data):
