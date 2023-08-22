@@ -26,6 +26,9 @@ parser.add_argument('--patience', type=int, default=10, help='the number of epoc
 parser.add_argument('--nonhybrid', action='store_true', help='only use the global preference to predict')
 parser.add_argument('--validation', action='store_true', help='validation')
 parser.add_argument('--valid_portion', type=float, default=0.1, help='split the portion of training set as validation set')
+parser.add_argument('--s', type=float, default=100, help='split the portion of training set as validation set')
+parser.add_argument('--m', type=float, default=0.1, help='split the portion of training set as validation set')
+parser.add_argument('--easy_margin', action='store_true', help='split the portion of training set as validation set')
 opt = parser.parse_args()
 print(opt)
 

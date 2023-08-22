@@ -122,7 +122,7 @@ class SessionGraph(Module):
 
         self.s = opt.s
         self.m = opt.m
-        nn.init.xavier_uniform_(self.weight)
+        nn.init.xavier_uniform_(self.embedding.weight)
 
         self.easy_margin = opt.easy_margin
         self.cos_m = math.cos(self.m)
@@ -155,8 +155,8 @@ class SessionGraph(Module):
             phi = torch.where(cosine > self.th, phi, cosine - self.mm)
         # --------------------------- convert label to one-hot ---------------------------
         # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
-        one_hot = torch.zeros(cosine.size(), device=self.device)
-        one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+        one_hot = trans_to_cuda(torch.zeros(cosine.size()))
+        one_hot.scatter_(1, torch.Tensor(label).view(-1, 1).long(), 1)
         # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)  # you can use torch.where if your torch.__version__ is 0.4
         output *= self.s
@@ -189,7 +189,7 @@ def forward(model, i, data):
     alias_inputs, A, items, mask, targets = data.get_slice(i)
     alias_inputs = trans_to_cuda(torch.Tensor(alias_inputs).long())
     items = trans_to_cuda(torch.Tensor(items).long())
-    A = trans_to_cuda(torch.Tensor(A).float())
+    A = trans_to_cuda(torch.Tensor(np.array(A)).float())
     mask = trans_to_cuda(torch.Tensor(mask).long())
     hidden = model(items, A)
     get = lambda i: hidden[i][alias_inputs[i]]
