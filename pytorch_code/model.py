@@ -114,7 +114,8 @@ class SessionGraph(Module):
         self.pos_emb = Parameter(torch.Tensor(self.len_max+1, self.hidden_size))
         self.linear_three = nn.Linear(self.hidden_size, 1, bias=False)
         self.linear_transform = nn.Linear(self.hidden_size * 2, self.hidden_size, bias=True)
-        self.loss_function = nn.CrossEntropyLoss()
+        # self.loss_function = nn.CrossEntropyLoss()
+        self.loss_function = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=opt.lr, weight_decay=opt.l2)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=opt.lr_dc_step, gamma=opt.lr_dc)
         self.reset_parameters()
@@ -157,7 +158,7 @@ class SessionGraph(Module):
             # --------------------------- convert label to one-hot ---------------------------
             # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
             one_hot = trans_to_cuda(torch.zeros(cosine.size()))
-            one_hot.scatter_(1, torch.Tensor(label).view(-1, 1).long(), 1)
+            one_hot.scatter_(1, trans_to_cuda(torch.Tensor(label-1)).view(-1, 1).long(), 1)
             # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
             output = (one_hot * phi) + ((1.0 - one_hot) * cosine)  # you can use torch.where if your torch.__version__ is 0.4
             output *= self.s
@@ -210,7 +211,7 @@ def train_test(model, train_data, test_data):
         model.optimizer.zero_grad()
         targets, scores = forward(model, i, train_data)
         targets = trans_to_cuda(torch.Tensor(targets).long())
-        loss = model.loss_function(scores, targets - 1)
+        loss = model.loss_function(scores.sigmoid(), targets - 1)
         loss.backward()
         model.optimizer.step()
         total_loss += loss
